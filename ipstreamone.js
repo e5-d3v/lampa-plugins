@@ -1,73 +1,95 @@
 (function () {
     'use strict';
 
-    function register() {
-        Lampa.Component.add('ipstream_page', function () {
-            var comp = this;
-            var html = $('<div><div style="height:50px;background:#111;display:flex;align-items:center;padding:0 20px;"><div class="button selector" id="ip_back" style="background:#e50914;color:#fff;padding:8px 16px;border-radius:4px;cursor:pointer;">Назад</div></div><iframe src="https://pl.ipstr.im/" style="width:100%;height:calc(100vh - 50px);border:none;"></iframe></div>');
-            
-            html.css({
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: '#000',
-                zIndex: 99999
-            });
+    function IPStreamPlugin() {
+        var network = new Lampa.Reguest();
+        var scroll = new Lampa.Scroll({mask: true, step: 250});
+        var content = $('<div></div>');
+        var comp = this;
 
-            html.find('#ip_back').on('hover:enter click', function () {
-                comp.destroy();
+        this.create = function () {
+            scroll.body(content);
+
+            var header = $('<div style="padding: 20px; background: #141414; display: flex; align-items: center;"></div>');
+            var backBtn = $('<div class="button selector" style="background: #e50914; color: #fff; padding: 12px 25px; border-radius: 6px; font-weight: bold; cursor: pointer;">Назад в Лампу</div>');
+            
+            backBtn.on('hover:enter click', function () {
                 Lampa.Activity.backward();
             });
 
-            this.create = function () {
-                return html;
-            };
+            header.append(backBtn);
 
-            this.start = function () {
-                Lampa.Controller.add('content', {
-                    toggle: function () {
-                        Lampa.Controller.collectionSet(html.find('#ip_back'));
-                        Lampa.Controller.toggle('content');
-                    },
-                    back: function () {
-                        comp.destroy();
-                        Lampa.Activity.backward();
-                    }
-                });
-                Lampa.Controller.toggle('content');
-            };
+            var iframeContainer = $('<div style="width: 100%; height: calc(100vh - 80px); background: #000;"></div>');
+            var iframe = $('<iframe src="https://pl.ipstr.im/" style="width: 100%; height: 100%; border: none;"></iframe>');
+            
+            iframeContainer.append(iframe);
+            content.append(header);
+            content.append(iframeContainer);
 
-            this.destroy = function () {
-                html.remove();
-            };
-        });
+            return scroll.render();
+        };
 
+        this.start = function () {
+            Lampa.Controller.add('content', {
+                toggle: function () {
+                    Lampa.Controller.collectionSet(scroll.render());
+                    Lampa.Controller.toggle('content');
+                },
+                left: function () {
+                    Lampa.Controller.toggle('menu');
+                },
+                back: function () {
+                    Lampa.Activity.backward();
+                }
+            });
+
+            Lampa.Controller.toggle('content');
+        };
+
+        this.pause = function () {};
+        this.stop = function () {};
+
+        this.destroy = function () {
+            network.clear();
+            scroll.destroy();
+            content.remove();
+        };
+    }
+
+    // Регистрация компонента в системе Лампы
+    if (window.Lampa && Lampa.Component) {
+        Lampa.Component.add('ipstream_view', IPStreamPlugin);
+    }
+
+    // Добавление пункта в главное меню через стандартный слушатель построения
+    function addPluginMenu() {
         Lampa.Listener.follow('full', function (e) {
             if (e.type === 'build') {
-                var menu = $('<div class="menu__item selector"><div class="menu__ico">🌐</div><div class="menu__text">IPStream.one</div></div>');
-                
-                menu.on('hover:enter click', function () {
-                    Lampa.Activity.push({
-                        url: '',
-                        title: 'IPStream.one',
-                        component: 'ipstream_page',
-                        page: 1
+                var menuList = e.body.find('.menu__list');
+                if (menuList.length && !menuList.find('#ipstream_menu_item').length) {
+                    var item = $('<div id="ipstream_menu_item" class="menu__item selector"><div class="menu__ico">🌐</div><div class="menu__text">IPStream.one</div></div>');
+                    
+                    item.on('hover:enter click', function () {
+                        Lampa.Activity.push({
+                            url: '',
+                            title: 'IPStream.one',
+                            component: 'ipstream_view',
+                            page: 1
+                        });
                     });
-                });
 
-                e.body.find('.menu__list').append(menu);
+                    menuList.append(item);
+                }
             }
         });
     }
 
     if (window.appready) {
-        register();
+        addPluginMenu();
     } else {
         Lampa.Listener.follow('app', function (e) {
             if (e.type === 'ready') {
-                register();
+                addPluginMenu();
             }
         });
     }
