@@ -7,13 +7,13 @@
         if (!head) return;
 
         // Проверяем, не была ли кнопка добавлена ранее, чтобы избежать дублирования
-        if (document.querySelector('.ipstr-plugin-btn')) return;
+        if (document.querySelector('.ipstream-plugin-btn')) return;
 
         // Создаем элемент кнопки
         const button = document.createElement('div');
-        button.classList.add('head__action', 'ipstr-plugin-btn', 'selector');
+        button.classList.add('head__action', 'ipstream-plugin-btn', 'selector');
         button.setAttribute('tabindex', '0');
-        button.title = 'IPStr TV';
+        button.title = 'IPStream.one';
         
         // Центрируем содержимое внутри кнопки с помощью Flexbox
         button.style.cssText = 'display: flex; align-items: center; justify-content: center;';
