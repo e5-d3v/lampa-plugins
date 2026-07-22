@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    function initIPStrPlugin() {
+    function initIPStreamOnePlugin() {
         const head = document.querySelector('.head__actions');
         if (!head) return;
 
@@ -35,11 +35,11 @@
     }
 
     if (window.appready) {
-        initIPStrPlugin();
+        initIPStreamOnePlugin();
     } else {
         Lampa.Listener.follow('app', function (e) {
             if (e.type === 'ready') {
-                initIPStrPlugin();
+                initIPStreamOnePlugin();
             }
         });
     }
