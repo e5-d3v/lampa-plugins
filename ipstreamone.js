@@ -1,130 +1,87 @@
 (function () {
     'use strict';
 
-    function registerPlugin() {
-        // Защита от повторной регистрации компонента
-        if (Lampa.Component.exists('ipstream_page')) return;
+    function IPStreamPlugin() {
+        var network = new Lampa.Reguest();
+        var scroll = new Lampa.Scroll({mask: true, step: 250});
+        var content = $('<div></div>');
+        var comp = this;
 
-        Lampa.Component.add('ipstream_page', function () {
-            var comp = this;
-            var html = $('<div></div>');
+        this.create = function () {
+            scroll.body(content);
             
-            html.css({
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: '#000',
-                zIndex: 99999,
-                display: 'flex',
-                flexDirection: 'column'
-            });
-
-            var header = $('<div></div>').css({
-                height: '60px',
-                background: 'rgba(20, 20, 20, 0.95)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 20px',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                boxSizing: 'border-box'
-            });
-
-            var backButton = $('<div class="button selector">Назад в Лампу</div>').css({
-                background: '#e50914',
-                color: '#fff',
-                padding: '10px 20px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '16px',
-                display: 'inline-block'
-            });
-
-            var iframe = $('<iframe src="https://pl.ipstr.im/"></iframe>').css({
-                width: '100%',
-                height: 'calc(100% - 60px)',
-                border: 'none',
-                background: '#111'
-            });
-
-            header.append(backButton);
-            html.append(header);
-            html.append(iframe);
-
-            // Обработка клика или нажатия ОК с пульта
-            backButton.on('hover:enter click', function () {
-                comp.destroy();
+            // Создаем шапку с кнопкой возврата
+            var header = $('<div class="ipstream-header" style="padding: 20px; background: #141414; display: flex; align-items: center;"></div>');
+            var backBtn = $('<div class="button selector" style="background: #e50914; color: #fff; padding: 12px 25px; border-radius: 6px; font-weight: bold; cursor: pointer;">Назад в Лампу</div>');
+            
+            backBtn.on('hover:enter click', function () {
                 Lampa.Activity.backward();
             });
 
-            this.create = function () {
-                return html;
-            };
+            header.append(backBtn);
 
-            this.start = function () {
-                Lampa.Controller.add('content', {
-                    toggle: function () {
-                        Lampa.Controller.collectionSet(header);
-                        Lampa.Controller.toggle('content');
-                    },
-                    up: function () {},
-                    down: function () {},
-                    left: function () {},
-                    right: function () {},
-                    back: function () {
-                        comp.destroy();
-                        Lampa.Activity.backward();
-                    }
-                });
-                Lampa.Controller.toggle('content');
-                backButton.addClass('focus');
-            };
+            // Создаем контейнер для веб-приложения через iframe
+            var iframeContainer = $('<div style="width: 100%; height: calc(100vh - 80px); background: #000;"></div>');
+            var iframe = $('<iframe src="https://pl.ipstr.im/" style="width: 100%; height: 100%; border: none;"></iframe>');
+            
+            iframeContainer.append(iframe);
+            content.append(header);
+            content.append(iframeContainer);
 
-            this.destroy = function () {
-                html.remove();
-            };
-        });
+            return scroll.render();
+        };
 
-        // Добавление пункта в главное меню Лампы с проверкой появления списка
-        function addMenuItem() {
-            if ($('.menu__list').length && !$('#ipstream_menu_item').length) {
-                var menu_item = $('<div id="ipstream_menu_item" class="menu__item selector"><div class="menu__ico">🌐</div><div class="menu__text">IPStream.one</div></div>');
+        this.start = function () {
+            Lampa.Controller.add('content', {
+                toggle: function () {
+                    Lampa.Controller.collectionSet(scroll.render());
+                    Lampa.Controller.toggle('content');
+                },
+                left: function () {
+                    Lampa.Controller.toggle('menu');
+                },
+                back: function () {
+                    Lampa.Activity.backward();
+                }
+            });
+
+            Lampa.Controller.toggle('content');
+        };
+
+        this.pause = function () {};
+
+        this.stop = function () {};
+
+        this.destroy = function () {
+            network.clear();
+            scroll.destroy();
+            content.remove();
+        };
+    }
+
+    // Регистрация компонента в системе Лампы
+    Lampa.Component.add('ipstream_view', IPStreamPlugin);
+
+    // Добавление кнопки в главное меню
+    Lampa.Listener.follow('full', function (e) {
+        if (e.type === 'build') {
+            var menuList = e.body.find('.menu__list');
+            if (menuList.length) {
+                var item = $('<div class="menu__item selector"><div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div><div class="menu__text">IPStream.one</div></div>');
                 
-                menu_item.on('hover:enter click', function () {
+                item.on('hover:enter click', function () {
                     Lampa.Activity.push({
                         url: '',
                         title: 'IPStream.one',
-                        component: 'ipstream_page',
+                        component: 'ipstream_view',
                         page: 1
                     });
                 });
 
-                $('.menu__list').append(menu_item);
+                menuList.append(item);
             }
         }
+    });
 
-        // Слушаем построение интерфейса
-        Lampa.Listener.follow('full', function (e) {
-            if (e.type === 'build') {
-                setTimeout(addMenuItem, 100);
-            }
-        });
-
-        // Пробуем добавить сразу на случай, если меню уже отрисовано
-        addMenuItem();
-    }
-
-    // Запуск после готовности Лампы
-    if (window.appready) {
-        registerPlugin();
-    } else {
-        Lampa.Listener.follow('app', function (e) {
-            if (e.type === 'ready') {
-                registerPlugin();
-            }
-        });
-    }
-
+    console.log('IPStream plugin initialized successfully');
 })();
